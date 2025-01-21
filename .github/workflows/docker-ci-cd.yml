@@ -58,7 +58,7 @@ jobs:
 
     - name: Deploy to Server
       run: |
-        ssh -o StrictHostKeyChecking=no ubuntu@13.51.79.236 << 'EOF'
+        ssh -o StrictHostKeyChecking=no ubuntu@${{ secrets.SERVER_IP }} << 'EOF'
         echo "Connected to EC2 instance!"
         docker pull ${{ secrets.DOCKER_USERNAME }}/nodejs-app:latest
         docker stop nodejs-app || true
