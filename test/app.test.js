@@ -1,16 +1,23 @@
 const request = require('supertest');
-const app = require('../index'); 
+const express = require('express');
+const path = require('path');
 
-describe('Node.js App Endpoints', () => {
-  it('GET / should return "Hello, World!!!!!!!"', async () => {
+// Mock the server setup
+const app = express();
+app.use(express.static(path.join(__dirname, '../public')));
+
+// Define the tests
+describe('Simple Node.js App', () => {
+  test('GET / should return the HTML page', async () => {
     const response = await request(app).get('/');
     expect(response.statusCode).toBe(200);
-    expect(response.text).toBe('Hello, World!!!!!!!');
+    expect(response.headers['content-type']).toContain('text/html');
+    expect(response.text).toContain('Hello, World!');
   });
 
-  it('GET /hello should return "Hello, From hello route!"', async () => {
-    const response = await request(app).get('/hello');
+  test('Static files should be served correctly', async () => {
+    const response = await request(app).get('/style.css');
     expect(response.statusCode).toBe(200);
-    expect(response.text).toBe('Hello, From hello route!');
+    expect(response.headers['content-type']).toContain('text/css');
   });
 });

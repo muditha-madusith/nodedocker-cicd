@@ -63,10 +63,29 @@ jobs:
         sudo docker stop nodejs-app || true
         sudo docker rm nodejs-app || true
         sudo docker container prune -f
-        sudo docker image prune -f
+        sudo docker images prune -f
         sudo docker pull ${{ secrets.DOCKER_USERNAME }}/nodejs-app:latest
         sudo docker run -d --name nodejs-app -p 3000:3000 --restart always ${{ secrets.DOCKER_USERNAME }}/nodejs-app:latest
         EOF
+
+    - name: Set up Nginx for port forwarding 
+      run: |
+        sudo tee /etc/nginx/sites-available/default << EOL
+        server {
+          listen 80;
+  
+          location / {
+            proxy_pass http://localhost:3000;
+            proxy_set_header Host \$host;
+            proxy_set_header X-Real-IP \$remote_addr;
+            proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto \$scheme;
+          }
+        }
+        EOL
+  
+        # Restart Nginx to apply the changes
+        sudo systemctl restart nginx
 
     - name: Notify on Success
       if: success()
