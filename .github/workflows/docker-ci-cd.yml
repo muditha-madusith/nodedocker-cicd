@@ -60,10 +60,10 @@ jobs:
       run: |
         ssh -o StrictHostKeyChecking=no ubuntu@${{ secrets.SERVER_IP }} << 'EOF'
         echo "Connected to EC2 instance!"
-        docker pull ${{ secrets.DOCKER_USERNAME }}/nodejs-app:latest
-        docker stop nodejs-app || true
-        docker rm nodejs-app || true
-        docker run -d --name nodejs-app -p 3000:3000 --restart always ${{ secrets.DOCKER_USERNAME }}/nodejs-app:latest
+        sudo docker pull ${{ secrets.DOCKER_USERNAME }}/nodejs-app:latest
+        sudo docker stop nodejs-app || true
+        sudo docker rm nodejs-app || true
+        sudo docker run -d --name nodejs-app -p 3000:3000 --restart always ${{ secrets.DOCKER_USERNAME }}/nodejs-app:latest
         EOF
 
     - name: Notify on Success
