@@ -64,6 +64,7 @@ jobs:
         sudo docker rm nodejs-app || true
         sudo docker container prune -f
         sudo docker images prune -f
+        
         sudo docker pull ${{ secrets.DOCKER_USERNAME }}/nodejs-app:latest
         sudo docker run -d --name nodejs-app -p 3000:3000 --restart always ${{ secrets.DOCKER_USERNAME }}/nodejs-app:latest
 
