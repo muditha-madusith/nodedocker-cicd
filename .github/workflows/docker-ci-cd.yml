@@ -1,0 +1,83 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - master
+      - staging
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v3
+
+    - name: Install Dependencies
+      run: |
+        npm install
+
+    - name: Run Tests
+      run: npm test
+
+  build-and-push-docker-image:
+    runs-on: ubuntu-latest
+    needs: test
+
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v3
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v2
+
+    - name: Log in to Docker Hub
+      uses: docker/login-action@v2
+      with:
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+
+    - name: Build and Push Docker Image
+      uses: docker/build-push-action@v5
+      with:
+        push: true
+        tags: |
+          ${{ secrets.DOCKER_USERNAME }}/nodejs-app:latest
+          ${{ secrets.DOCKER_USERNAME }}/nodejs-app:${{ github.sha }}
+
+  deploy:
+   runs-on: ubuntu-latest
+   needs: build-and-push-docker-image
+
+   steps:
+    - name: Add SSH Private Key
+      uses: webfactory/ssh-agent@v0.7.0
+      with:
+        ssh-private-key: ${{ secrets.SSH_KEY }}
+
+    - name: Deploy to Server
+      run: |
+        ssh -o StrictHostKeyChecking=no ubuntu@13.51.79.236 << 'EOF'
+        echo "Connected to EC2 instance!"
+        docker pull ${{ secrets.DOCKER_USERNAME }}/nodejs-app:latest
+        docker stop nodejs-app || true
+        docker rm nodejs-app || true
+        docker run -d --name nodejs-app -p 3000:3000 --restart always ${{ secrets.DOCKER_USERNAME }}/nodejs-app:latest
+        EOF
+
+    - name: Notify on Success
+      if: success()
+      run: |
+        echo "Deployment Successful!"
+        curl -X POST -H 'Content-type: application/json' \
+        --data '{"text":"Deployment of commit '${{ github.sha }}' was successful!"}' \
+        ${{ secrets.SLACK_WEBHOOK_URL }}
+
+    - name: Notify on Failure
+      if: failure()
+      run: |
+        echo "Deployment Failed!"
+        curl -X POST -H 'Content-type: application/json' \
+        --data '{"text":"Deployment of commit '${{ github.sha }}' failed!"}' \
+        ${{ secrets.SLACK_WEBHOOK_URL }}
