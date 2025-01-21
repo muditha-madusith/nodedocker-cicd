@@ -60,9 +60,11 @@ jobs:
       run: |
         ssh -o StrictHostKeyChecking=no ubuntu@${{ secrets.SERVER_IP }} << 'EOF'
         echo "Connected to EC2 instance!"
-        sudo docker pull ${{ secrets.DOCKER_USERNAME }}/nodejs-app:latest
         sudo docker stop nodejs-app || true
         sudo docker rm nodejs-app || true
+        sudo docker container prune -f
+        sudo docker image prune -f
+        sudo docker pull ${{ secrets.DOCKER_USERNAME }}/nodejs-app:latest
         sudo docker run -d --name nodejs-app -p 3000:3000 --restart always ${{ secrets.DOCKER_USERNAME }}/nodejs-app:latest
         EOF
 
@@ -70,14 +72,8 @@ jobs:
       if: success()
       run: |
         echo "Deployment Successful!"
-        curl -X POST -H 'Content-type: application/json' \
-        --data '{"text":"Deployment of commit '${{ github.sha }}' was successful!"}' \
-        ${{ secrets.SLACK_WEBHOOK_URL }}
 
     - name: Notify on Failure
       if: failure()
       run: |
         echo "Deployment Failed!"
-        curl -X POST -H 'Content-type: application/json' \
-        --data '{"text":"Deployment of commit '${{ github.sha }}' failed!"}' \
-        ${{ secrets.SLACK_WEBHOOK_URL }}
