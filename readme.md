@@ -1,22 +1,20 @@
-# Automating CI/CD for a Node.js App with Docker and GitHub Actions: A Comprehensive Guide
+# Node.js CI/CD Pipeline with Docker and GitHub Actions
 
-![Blank diagram.png](Automating%20CI%20CD%20for%20a%20Node%20js%20App%20with%20Docker%20and%2018217c74f6d48065b38df2b00502e6bb/Blank_diagram.png)
+This project demonstrates how to set up a **CI/CD pipeline** for a Node.js application using **Docker** and **GitHub Actions**. The pipeline automates testing, building, and deploying the application to a remote server, ensuring a seamless and reliable deployment process.
 
-In the modern software development landscape, automating your Continuous Integration and Continuous Deployment (CI/CD) pipeline is no longer optional—it's a necessity. Automation ensures that your code is always in a deployable state, reduces manual errors, and accelerates the release process. In this article, I’ll take you through a detailed walkthrough of how I set up a robust CI/CD pipeline for a simple Node.js application using **Docker** and **GitHub Actions**. Whether you're a beginner or an experienced developer, this guide will provide you with actionable insights to implement a similar pipeline in your projects.
+---
 
-## **Project Overview**
+## 📁 Project Structure
 
-The project is a straightforward Node.js application with the following structure:
-
-```notion
-github/workflows
+```
+.github/workflows/
     docker-ci-cd.yml
-node_modules
-public
+node_modules/
+public/
     index.html
     script.js
     style.css
-test
+test/
     app.test.js
 .gitignore
 docker-compose.yml
@@ -24,237 +22,176 @@ Dockerfile
 index.js
 package-lock.json
 package.json
-readme.md
+README.md
 ```
 
-The application serves static files (HTML, CSS, and JavaScript) from the public directory and includes a basic Express server. It also has a test suite to ensure the application behaves as expected. The goal is to automate the testing, building, and deployment of this application using Docker and GitHub Actions.
+---
 
-## **Key Components of the Project**
+## 🚀 Features
 
-Let’s break down the key components of the project and how they contribute to the CI/CD pipeline.
+- **Express Server**: Serves static files and handles routes.
+- **Automated Testing**: Uses `supertest` to validate server behavior.
+- **Dockerized Builds**: Ensures consistent builds across environments.
+- **CI/CD Pipeline**: Automates testing, building, and deployment using GitHub Actions.
+- **Nginx Reverse Proxy**: Configures Nginx to forward requests to the Node.js app.
 
-1. **Express Server (`index.js`)**
+---
+
+## 🛠️ Prerequisites
+
+Before you begin, ensure you have the following installed:
+
+- **Node.js** (v16 or higher)
+- **Docker** (for containerization)
+- **GitHub Account** (for GitHub Actions)
+- **Docker Hub Account** (for storing Docker images)
+- **Remote Server** (e.g., EC2 instance) with Docker and Nginx installed
+
+---
+
+## 🚀 Getting Started
+
+### 1. Clone the Repository
+
+```
+git clone https://github.com/your-username/nodejs-ci-cd-docker.git
+cd nodejs-ci-cd-docker
+```
+
+### 2. Install Dependencies
+
+```
+npm install
+```
+
+### 3. Run the Application Locally
+
+```
+npm start
+```
+
+Visit `http://localhost:3000` in your browser to see the application running.
+
+---
+
+## 🐳 Docker Setup
+
+### Build the Docker Image
+
+```
+docker build -t your-dockerhub-username/nodejs-app .
+```
+
+### Run the Docker Container
+
+```
+docker run -d -p 3000:3000 --name nodejs-app your-dockerhub-username/nodejs-app
+```
+
+Visit `http://localhost:3000` to see the app running in a Docker container.
+
+---
+
+## 🛠️ CI/CD Pipeline with GitHub Actions
+
+The CI/CD pipeline is defined in `.github/workflows/docker-ci-cd.yml`. It performs the following steps:
+
+1. **Test**: Runs automated tests using `npm test`.
+2. **Build and Push Docker Image**: Builds the Docker image and pushes it to Docker Hub.
+3. **Deploy**: Deploys the application to a remote server using SSH.
+
+### Secrets Required
+
+To run the pipeline, you need to set the following secrets in your GitHub repository:
+
+- `DOCKER_USERNAME`: Your Docker Hub username.
+- `DOCKER_PASSWORD`: Your Docker Hub password.
+- `SSH_KEY`: Private SSH key for accessing the remote server.
+- `SERVER_IP`: IP address of the remote server.
+
+---
+
+## 🧪 Running Tests
+
+To run the tests locally:
+
+```
+npm test
+```
+
+The tests ensure that:
+
+- The root route (`/`) returns the correct HTML page.
+- Static files (e.g., `style.css`) are served correctly.
+
+---
+
+## 🌐 Deployment
+
+The application is deployed to a remote server using the following steps:
+
+1. **Pull the Latest Docker Image**:
     
-    The `index.js` file is the entry point of the application. It sets up an Express server that serves static files from the `public` directory and listens on port 3000.
-    
-    ```jsx
-    const express = require('express');
-    const path = require('path');
-    
-    const app = express();
-    const PORT = 3000;
-    
-    // Serve static files from the "public" directory
-    app.use(express.static(path.join(__dirname, 'public')));
-    
-    // Define a route for the root URL
-    app.get('/', (req, res) => {
-      res.sendFile(path.join(__dirname, 'public', 'index.html'));
-    });
-    
-    // Start the server
-    app.listen(PORT, () => {
-      console.log(`Server is running at http://localhost:${PORT}`);
-    });
+    ```
+    docker pull your-dockerhub-username/nodejs-app:latest
     ```
     
-    **Key Points:**
+2. **Run the Docker Container**:
     
-    - The server serves static files like `index.html`, `style.css`, and `script.js` from the `public` directory.
-    - The root route (`/`) returns the `index.html` file.
-    - The server listens on port 3000, making it accessible at `http://localhost:3000`.
-2. **Testing with Supertest (`app.test.js`)**
-    
-    Testing is a critical part of any CI/CD pipeline. The `app.test.js` file contains tests written using the `supertest` library to ensure the server behaves as expected.
-    
-    ```jsx
-    const request = require('supertest');
-    const express = require('express');
-    const path = require('path');
-    
-    // Mock the server setup
-    const app = express();
-    app.use(express.static(path.join(__dirname, '../public')));
-    
-    // Define the tests
-    describe('Simple Node.js App', () => {
-      test('GET / should return the HTML page', async () => {
-        const response = await request(app).get('/');
-        expect(response.statusCode).toBe(200);
-        expect(response.headers['content-type']).toContain('text/html');
-        expect(response.text).toContain('Hello, World!');
-      });
-    
-      test('Static files should be served correctly', async () => {
-        const response = await request(app).get('/style.css');
-        expect(response.statusCode).toBe(200);
-        expect(response.headers['content-type']).toContain('text/css');
-      });
-    });
+    ```
+    docker run -d -p 3000:3000 --name nodejs-app --restart always your-dockerhub-username/nodejs-app:latest
     ```
     
-    **Key Points:**
-    
-    - The first test checks if the root route (`/`) returns a 200 status code, serves HTML content, and contains the text "Hello, World!".
-    - The second test ensures that static files (like `style.css`) are served correctly with the appropriate content type (`text/css`).
-    - These tests are run automatically in the CI/CD pipeline to catch issues early.
-3. **Dockerizing the Application (`Dockerfile`)**
-    
-    Docker allows us to containerize the application, ensuring consistency across different environments. The `Dockerfile` defines the steps to build a Docker image for the Node.js application.
-    
-    ```jsx
-    # Use an official Node.js runtime as the base image
-    FROM node:16-alpine
-    
-    # Set the working directory inside the container
-    WORKDIR /app
-    
-    # Copy dependency files
-    COPY package*.json ./
-    
-    # Install dependencies
-    RUN npm install
-    
-    # Copy the rest of the application code
-    COPY . .
-    
-    # Expose the application port
-    EXPOSE 3000
-    
-    # Run the application
-    CMD ["npm", "start"]
-    ```
-    
-    **Key Points:**
-    
-    - The `node:16-alpine` image is used as the base image, which is lightweight and optimized for Node.js applications.
-    - Dependencies are installed using `npm install` after copying `package.json` and `package-lock.json`.
-    - The application code is copied into the container, and port 3000 is exposed.
-    - The `CMD` instruction starts the application using `npm start`.
-4. **CI/CD Pipeline with GitHub Actions (`docker-ci-cd.yml`)**
-    
-    The heart of the automation process is the GitHub Actions workflow defined in `docker-ci-cd.yml`. This file automates the testing, building, and deployment of the application.
-    
-    ```yaml
-    name: CI/CD Pipeline
-    
-    on:
-      push:
-        branches:
-          - master
-          - staging
-    
-    jobs:
-      test:
-        runs-on: ubuntu-latest
-    
-        steps:
-        - name: Checkout Code
-          uses: actions/checkout@v3
-    
-        - name: Install Dependencies
-          run: |
-            npm install
-    
-        - name: Run Tests
-          run: npm test
-    
-      build-and-push-docker-image:
-        runs-on: ubuntu-latest
-        needs: test
-    
-        steps:
-        - name: Checkout Code
-          uses: actions/checkout@v3
-    
-        - name: Set up Docker Buildx
-          uses: docker/setup-buildx-action@v2
-    
-        - name: Log in to Docker Hub
-          uses: docker/login-action@v2
-          with:
-            username: ${{ secrets.DOCKER_USERNAME }}
-            password: ${{ secrets.DOCKER_PASSWORD }}
-    
-        - name: Build and Push Docker Image
-          uses: docker/build-push-action@v5
-          with:
-            push: true
-            tags: |
-              ${{ secrets.DOCKER_USERNAME }}/nodejs-app:latest
-              ${{ secrets.DOCKER_USERNAME }}/nodejs-app:${{ github.sha }}
-    
-      deploy:
-        runs-on: ubuntu-latest
-        needs: build-and-push-docker-image
-    
-        steps:
-        - name: Add SSH Private Key
-          uses: webfactory/ssh-agent@v0.7.0
-          with:
-            ssh-private-key: ${{ secrets.SSH_KEY }}
-    
-        - name: Deploy to Server
-          run: |
-            ssh -o StrictHostKeyChecking=no ubuntu@${{ secrets.SERVER_IP }} << 'EOF'
-            echo "Connected to EC2 instance!"
-            sudo docker stop nodejs-app || true
-            sudo docker rm nodejs-app || true
-            sudo docker container prune -f
-            sudo docker images prune -f
-            
-            sudo docker pull ${{ secrets.DOCKER_USERNAME }}/nodejs-app:latest
-            sudo docker run -d --name nodejs-app -p 3000:3000 --restart always ${{ secrets.DOCKER_USERNAME }}/nodejs-app:latest
-            EOF
-    
-        - name: Set up Nginx for port forwarding 
-          run: |
-              sudo tee /etc/nginx/sites-available/default << EOL
-              server {
-                listen 80;
-                server_name _;
-      
-                location / {
-                  proxy_pass http://localhost:3000;
-                  proxy_set_header Host \$host;
-                  proxy_set_header X-Real-IP \$remote_addr;
-                  proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-                  proxy_set_header X-Forwarded-Proto \$scheme;
-                }
-              }
-              EOL
-      
-              # Restart Nginx to apply the changes
-              sudo systemctl restart nginx
-    
-        - name: Notify on Success
-          if: success()
-          run: |
-            echo "Deployment Successful!"
-    
-        - name: Notify on Failure
-          if: failure()
-          run: |
-            echo "Deployment Failed!"
-    ```
-    
-    **Key Points:**
-    
-    - The pipeline is triggered on pushes to the `master` and `staging` branches.
-    - **Test Job**: Installs dependencies and runs tests using `npm test`.
-    - **Build and Push Docker Image Job**: Builds the Docker image and pushes it to Docker Hub with two tags: `latest` and the commit SHA.
-    - **Deploy Job**: Connects to a remote server via SSH, stops and removes any existing containers, pulls the latest Docker image, and runs it. It also sets up Nginx for port forwarding.
-    - Notifications are sent based on the success or failure of the deployment.
+3. **Configure Nginx**:
+    - Update the Nginx configuration to forward requests from port 80 to port 3000.
+    - Restart Nginx to apply the changes:
+        
+        ```
+        sudo systemctl restart nginx
+        ```
+        
 
-## Benefits of This Setup
+---
 
-1. **Automated Testing**: Ensures that every change is tested before deployment, reducing the risk of bugs in production.
-2. **Consistent Builds**: Docker ensures that the application runs the same way in all environments.
-3. **Seamless Deployment**: GitHub Actions automates the entire deployment process, from testing to pushing Docker images and deploying to a server.
-4. **Scalability**: This setup can be easily extended to include additional environments, such as production or staging.
+## 📂 File Descriptions
 
-## Conclusion
+- **`index.js`**: Entry point for the Express server.
+- **`Dockerfile`**: Defines the Docker image for the application.
+- **`docker-ci-cd.yml`**: GitHub Actions workflow for CI/CD.
+- **`app.test.js`**: Automated tests for the application.
+- **`public/`**: Contains static files (HTML, CSS, JS).
+- **`package.json`**: Defines project dependencies and scripts.
 
-By setting up this CI/CD pipeline, I’ve automated the testing, building, and deployment processes for my Node.js application. This ensures that every push to the `master` or `staging` branches triggers a series of actions that validate the code, build a Docker image, and deploy it to a server. This setup not only saves time but also reduces the risk of human error, making the development process more efficient and reliable.
+---
 
-Feel free to adapt this setup to your own projects, and let me know if you have any questions or suggestions for improvement!
+## 🤝 Contributing
+
+Contributions are welcome! If you'd like to contribute, please follow these steps:
+
+1. Fork the repository.
+2. Create a new branch (`git checkout -b feature/YourFeature`).
+3. Commit your changes (`git commit -m 'Add some feature'`).
+4. Push to the branch (`git push origin feature/YourFeature`).
+5. Open a pull request.
+
+---
+
+## 🙏 Acknowledgments
+
+- [Express.js](https://expressjs.com/) for the web framework.
+- [Docker](https://www.docker.com/) for containerization.
+- [GitHub Actions](https://github.com/features/actions) for CI/CD automation.
+- [Supertest](https://github.com/visionmedia/supertest) for testing.
+
+---
+
+## 📧 Contact
+
+If you have any questions or suggestions, feel free to reach out:
+
+- **Email**: kabmmadusith2003@gmail.com
+- **LinkedIn**: [www.linkedin.com/in/muditha-madusith](http://www.linkedin.com/in/muditha-madusith)
+
+---
+
+Happy coding! 🚀
